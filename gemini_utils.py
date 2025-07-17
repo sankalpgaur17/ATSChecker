@@ -3,15 +3,26 @@ import os
 
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
-
-def get_gemini_response(input_text, user_pdf_content, sample_resume_contents, prompt):
+def get_llm_feedback_and_score(user_resume_text, jd_text, prompt):
     model = genai.GenerativeModel("gemini-2.5-flash")
 
-    input_parts = [input_text, user_pdf_content[0]]
-    input_parts.extend(sample_resume_contents)  # Can be empty if not needed
-    input_parts.append(prompt)
+    input_parts = [
+        jd_text,
+        user_resume_text,
+        prompt
+    ]
 
     response = model.generate_content(input_parts, generation_config={"temperature": 0})
 
-    return response.text
+    # Parse LLM Response
+    output = response.text
 
+    # Extract score from LLM output (look for first number out of 100)
+    import re
+    score_match = re.search(r'(\d+(\.\d+)?)\s*/\s*100', output)
+    if score_match:
+        score = float(score_match.group(1))
+    else:
+        score = 50.0  # fallback
+
+    return score, output
